@@ -5,13 +5,10 @@ import Link from "next/link";
 
 export default async function HomePage() {
     const featured = await getFeatured();
-    const latestArticles = await getLatestByCategory("article", 3);
-    const latestPoems = await getLatestByCategory("poem", 3);
-    const latestNews = await getLatestByCategory("news", 3);
-    const latestArt = await getLatestByCategory("art", 3);
 
     return (
         <div className="space-y-10">
+           
             <section className="grid gap-6 lg:grid-cols-2 items-stretch">
                 <Card className="bg-muted border-dashed">
                     <CardContent className="p-6 md:p-10 flex flex-col justify-center">

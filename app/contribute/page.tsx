@@ -1,222 +1,210 @@
 "use client";
 
-import type React from "react";
+import React, { useState } from "react";
+import { useAuth, ProtectedRoute } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { FileText, Upload, ImageIcon, Loader2, X } from "lucide-react";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ProtectedRoute, useAuth } from "@/contexts/AuthContext";
-import { AlertCircle, FileText, ImageIcon, Loader2, Upload } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 
 export default function ContributePage() {
     return (
         <ProtectedRoute>
-            <ContributeForm />
+            <div className="container max-w-3xl py-10">
+                <div className="mb-8 text-center">
+                    <h1 className="text-3xl font-bold tracking-tight mb-2">Submit Your Work</h1>
+                    <p className="text-muted-foreground">
+                        Contribute articles, poems, or research to the Apodartho eMagazine.
+                    </p>
+                </div>
+                <ContributeForm />
+            </div>
         </ProtectedRoute>
     );
 }
 
 function ContributeForm() {
-    const { user } = useAuth();
-    const [submissionType, setSubmissionType] = useState<"paste" | "upload" | "image_upload">("paste");
     const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState({
-        title: "",
-
-        raw_content: "",
-    });
+    const [title, setTitle] = useState("");
+    const [content, setContent] = useState("");
     const [file, setFile] = useState<File | null>(null);
     const [images, setImages] = useState<File[]>([]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
+    const handleSubmit = async (type: "paste" | "upload" | "image_upload") => {
+        if (!title) {
+            toast.error("Please provide a title for your work.");
+            return;
+        }
 
+        setLoading(true);
         try {
             const data = new FormData();
-            data.append("title", formData.title);
+            data.append("title", title);
+            data.append("submission_type", type);
 
-            data.append("submission_type", submissionType);
-
-            if (submissionType === "paste") {
-                if (!formData.raw_content.trim()) {
-                    throw new Error("Please enter content");
-                }
-                data.append("raw_content", formData.raw_content);
-            } else if (submissionType === "upload") {
+            if (type === "paste") {
+                if (!content) throw new Error("Content cannot be empty");
+                data.append("raw_content", content);
+            } else if (type === "upload") {
                 if (!file) throw new Error("Please select a file");
                 data.append("file", file);
-            } else if (submissionType === "image_upload") {
-                if (images.length === 0) throw new Error("Please select at least one image");
+            } else if (type === "image_upload") {
+                if (images.length === 0) throw new Error("Please select images");
                 images.forEach(img => data.append("images", img));
             }
 
             const res = await fetch("/api/posts", {
                 method: "POST",
-                credentials: "include",
                 body: data,
             });
 
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.message || "Submission failed");
-            }
+            if (!res.ok) throw new Error("Submission failed");
 
-            toast.success("Post submitted successfully! Awaiting editor review.");
-            setFormData({
-                title: "",
-
-                raw_content: "",
-            });
+            toast.success("Successfully submitted for review!");
+            // Reset form
+            setTitle("");
+            setContent("");
             setFile(null);
             setImages([]);
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : "Submission failed");
+            toast.error(error instanceof Error ? error.message : "Something went wrong");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="max-w-2xl mx-auto space-y-8">
-            <div className="space-y-2">
-                <h1 className="text-3xl font-bold">Contribute to Apodartho</h1>
-                <p className="text-muted-foreground">Share your work with our community</p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Title */}
-                <div className="space-y-2">
-                    <label className="text-sm font-medium">Title *</label>
-                    <Input
-                        placeholder="Enter post title"
-                        value={formData.title}
-                        onChange={e => setFormData({ ...formData, title: e.target.value })}
-                        maxLength={200}
-                        required
-                    />
-                    <p className="text-xs text-muted-foreground">{formData.title.length}/200</p>
-                </div>
-
-                {/* Submission Type */}
-                <div className="space-y-4">
-                    <label className="text-sm font-medium">How would you like to submit? *</label>
-                    <div className="grid grid-cols-3 gap-2">
-                        {[
-                            { value: "paste", label: "Paste Text", icon: FileText },
-                            { value: "upload", label: "Upload File", icon: Upload },
-                            { value: "image_upload", label: "Upload Images", icon: ImageIcon },
-                        ].map(({ value, label, icon: Icon }) => (
-                            <button
-                                key={value}
-                                type="button"
-                                onClick={() => setSubmissionType(value as any)}
-                                className={`p-4 border rounded-lg text-center transition-colors ${
-                                    submissionType === value
-                                        ? "bg-primary text-primary-foreground border-primary"
-                                        : "bg-muted hover:bg-muted/50"
-                                }`}
-                            >
-                                <Icon className="w-6 h-6 mx-auto mb-2" />
-                                <span className="text-sm font-medium">{label}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Content Input */}
-                {submissionType === "paste" && (
+        <Card className="border-muted bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+                <CardTitle>Submission Details</CardTitle>
+                <CardDescription>Choose how you want to provide your content.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-6">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Content *</label>
-                        <Textarea
-                            placeholder="Paste your content here..."
-                            value={formData.raw_content}
-                            onChange={e => setFormData({ ...formData, raw_content: e.target.value })}
-                            rows={8}
-                            maxLength={50000}
-                            required
+                        <Label htmlFor="title">Title of your work</Label>
+                        <Input 
+                            id="title" 
+                            placeholder="e.g. The Quantum Leap in Modern Physics" 
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            className="text-lg font-medium"
                         />
-                        <p className="text-xs text-muted-foreground">{formData.raw_content.length}/50,000 characters</p>
                     </div>
-                )}
 
-                {/* File Upload */}
-                {submissionType === "upload" && (
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Upload Document *</label>
-                        <div className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-muted/50 transition-colors">
-                            <input
-                                type="file"
-                                onChange={e => setFile(e.target.files?.[0] || null)}
-                                accept=".pdf,.docx,.txt"
-                                required
-                                className="hidden"
-                                id="file-input"
+                    <Tabs defaultValue="write" className="w-full">
+                        <TabsList className="grid w-full grid-cols-3 mb-6">
+                            <TabsTrigger value="write">
+                                <FileText className="w-4 h-4 mr-2" /> Write
+                            </TabsTrigger>
+                            <TabsTrigger value="upload">
+                                <Upload className="w-4 h-4 mr-2" /> File Upload
+                            </TabsTrigger>
+                            <TabsTrigger value="images">
+                                <ImageIcon className="w-4 h-4 mr-2" /> Artwork
+                            </TabsTrigger>
+                        </TabsList>
+
+                        {/* --- WRITE TAB --- */}
+                        <TabsContent value="write" className="space-y-4">
+                            <Textarea 
+                                placeholder="Start typing your article, poem, or story here..." 
+                                className="min-h-[300px] font-mono text-sm leading-relaxed"
+                                value={content}
+                                onChange={(e) => setContent(e.target.value)}
                             />
-                            <label htmlFor="file-input" className="cursor-pointer">
-                                <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                                <p className="text-sm font-medium">
-                                    {file ? file.name : "Click to upload or drag and drop"}
-                                </p>
-                                <p className="text-xs text-muted-foreground">PDF, DOCX, TXT (max 16MB)</p>
-                            </label>
-                        </div>
-                    </div>
-                )}
+                            <div className="flex justify-end">
+                                <Button onClick={() => handleSubmit("paste")} disabled={loading}>
+                                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Submit Text
+                                </Button>
+                            </div>
+                        </TabsContent>
 
-                {/* Image Upload */}
-                {submissionType === "image_upload" && (
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Upload Images *</label>
-                        <div className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-muted/50 transition-colors">
-                            <input
-                                type="file"
-                                onChange={e => setImages(Array.from(e.target.files || []))}
-                                accept=".jpg,.jpeg,.png"
-                                multiple
-                                required
-                                className="hidden"
-                                id="images-input"
-                            />
-                            <label htmlFor="images-input" className="cursor-pointer">
-                                <ImageIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                                <p className="text-sm font-medium">
-                                    {images.length > 0
-                                        ? `${images.length} image(s) selected`
-                                        : "Click to upload or drag and drop"}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                    JPG, PNG (max 10MB each, up to 10 images)
-                                </p>
-                            </label>
-                        </div>
-                    </div>
-                )}
+                        {/* --- UPLOAD TAB --- */}
+                        <TabsContent value="upload" className="space-y-4">
+                            <div className="border-2 border-dashed rounded-xl p-10 text-center hover:bg-muted/50 transition-colors">
+                                <Input 
+                                    type="file" 
+                                    className="hidden" 
+                                    id="file-upload"
+                                    accept=".pdf,.docx,.txt"
+                                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                                />
+                                <Label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
+                                    <div className="p-4 rounded-full bg-primary/10 text-primary mb-4">
+                                        <Upload className="w-8 h-8" />
+                                    </div>
+                                    <span className="text-lg font-semibold">
+                                        {file ? file.name : "Click to upload document"}
+                                    </span>
+                                    <span className="text-sm text-muted-foreground mt-1">
+                                        PDF, DOCX, or TXT (Max 16MB)
+                                    </span>
+                                </Label>
+                            </div>
+                            <div className="flex justify-end">
+                                <Button onClick={() => handleSubmit("upload")} disabled={loading || !file}>
+                                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Submit File
+                                </Button>
+                            </div>
+                        </TabsContent>
 
-                {/* Alert */}
-                <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                        Your submission will be reviewed by editors before publishing. This typically takes 2-3 business
-                        days.
-                    </AlertDescription>
-                </Alert>
+                        {/* --- IMAGES TAB --- */}
+                        <TabsContent value="images" className="space-y-4">
+                            <div className="border-2 border-dashed rounded-xl p-10 text-center hover:bg-muted/50 transition-colors">
+                                <Input 
+                                    type="file" 
+                                    className="hidden" 
+                                    id="image-upload"
+                                    multiple
+                                    accept="image/*"
+                                    onChange={(e) => setImages(Array.from(e.target.files || []))}
+                                />
+                                <Label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center">
+                                    <div className="p-4 rounded-full bg-primary/10 text-primary mb-4">
+                                        <ImageIcon className="w-8 h-8" />
+                                    </div>
+                                    <span className="text-lg font-semibold">Click to upload images</span>
+                                    <span className="text-sm text-muted-foreground mt-1">
+                                        JPG, PNG (Max 10MB each)
+                                    </span>
+                                </Label>
+                            </div>
+                            
+                            {/* Image Preview List */}
+                            {images.length > 0 && (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {images.map((img, idx) => (
+                                        <div key={idx} className="relative group border rounded-lg p-2">
+                                            <p className="text-xs truncate">{img.name}</p>
+                                            <button 
+                                                onClick={() => setImages(images.filter((_, i) => i !== idx))}
+                                                className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
 
-                {/* Submit Button */}
-                <Button type="submit" disabled={loading} className="w-full">
-                    {loading ? (
-                        <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Submitting...
-                        </>
-                    ) : (
-                        "Submit Post"
-                    )}
-                </Button>
-            </form>
-        </div>
+                            <div className="flex justify-end">
+                                <Button onClick={() => handleSubmit("image_upload")} disabled={loading || images.length === 0}>
+                                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Submit Artwork
+                                </Button>
+                            </div>
+                        </TabsContent>
+                    </Tabs>
+                </div>
+            </CardContent>
+        </Card>
     );
 }

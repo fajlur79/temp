@@ -6,6 +6,21 @@ const nextConfig = {
     images: {
         unoptimized: true,
     },
+    webpack: (config, { isServer }) => {
+        // Add WASM support
+        config.experiments = {
+            ...config.experiments,
+            asyncWebAssembly: true,
+        };
+
+        // Handle .wasm files
+        config.module.rules.push({
+            test: /\.wasm$/,
+            type: "asset/resource",
+        });
+
+        return config;
+    },
     async headers() {
         return [
             {
@@ -21,6 +36,8 @@ const nextConfig = {
                             "font-src 'self' data: https://fonts.gstatic.com",
                             "connect-src 'self' https: *.public.blob.vercel-storage.com",
                             "frame-src 'self' https://*.public.blob.vercel-storage.com",
+                            "worker-src 'self' blob:",
+                            "child-src 'self' blob:",
                         ].join("; "),
                     },
                 ],

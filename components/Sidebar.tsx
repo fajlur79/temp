@@ -1,66 +1,169 @@
 "use client";
 
-import { FileText, LayoutDashboard, LogOut, Shield, User } from "lucide-react";
+import { 
+    LayoutDashboard, 
+    FileText, 
+    Upload, 
+    Shield, 
+    Users, 
+    Settings, 
+    LogOut, 
+    FileCheck,
+    BookOpen,
+    BarChart3,
+    UserCircle,
+    Sliders
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 
-const MENU_ITEMS = [
-    { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Edit Profile", href: "/dashboard/profile", icon: User },
-    { name: "Security", href: "/dashboard/security", icon: Shield },
-    { name: "My Submissions", href: "/dashboard/submissions", icon: FileText },
-];
-
-export default function Sidebar({ user }: { user: any }) {
+export default function Sidebar({ user, logout }: { user: any, logout: () => void }) {
     const pathname = usePathname();
+    const isActive = (href: string) => pathname === href;
 
     return (
-        <div className="w-full md:w-64 flex-shrink-0">
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden sticky top-24">
-                {/* User Info Block */}
-                <div className="p-6 text-center border-b border-slate-100 bg-slate-50/50">
-                    <div className="relative inline-block">
-                        <img
-                            className="h-24 w-24 rounded-full ring-4 ring-white shadow-md mx-auto object-cover"
-                            src={user.avatar}
-                            alt={user.name}
-                        />
-                        <span className="absolute bottom-1 right-1 block h-4 w-4 rounded-full bg-emerald-400 ring-2 ring-white"></span>
+        <aside className="hidden md:flex flex-col w-64 border-r bg-card h-[calc(100vh-4rem)] sticky top-16">
+            <div className="p-6 flex flex-col gap-6 flex-1 overflow-y-auto">
+                
+                {/* User Snippet (Clickable to go to Profile) */}
+                <Link href="/dashboard/profile" className="flex items-center gap-3 px-2 py-2 hover:bg-muted/50 rounded-lg transition-colors group">
+                    <Avatar className="h-10 w-10 border ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
+                        <AvatarImage src={user.profile_picture_url} />
+                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col overflow-hidden">
+                        <span className="text-sm font-semibold truncate group-hover:text-primary transition-colors">{user.name}</span>
+                        <span className="text-xs text-muted-foreground capitalize">{user.role}</span>
                     </div>
-                    <h2 className="mt-4 text-lg font-bold text-slate-900">{user.name}</h2>
-                    <p className="text-sm text-slate-500 font-medium">{user.role}</p>
-                </div>
+                </Link>
 
-                {/* Navigation Links */}
-                <nav className="p-4 space-y-1">
-                    {MENU_ITEMS.map(item => {
-                        const isActive = pathname === item.href;
-                        const Icon = item.icon;
+                {/* --- MAIN NAVIGATION (No Label) --- */}
+                <nav className="space-y-1">
+                    <NavItem 
+                        href="/dashboard" 
+                        icon={LayoutDashboard} 
+                        label="Overview" 
+                        active={isActive("/dashboard")} 
+                    />
+                    
+                    <NavItem 
+                        href="/dashboard/profile" 
+                        icon={UserCircle} 
+                        label="Profile" 
+                        active={isActive("/dashboard/profile")} 
+                    />
+                    
+                    <NavItem 
+                        href="/dashboard/settings" 
+                        icon={Sliders} 
+                        label="Settings" 
+                        active={isActive("/dashboard/settings")} 
+                    />
 
-                        return (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-200 ${
-                                    isActive
-                                        ? "bg-indigo-50 text-indigo-700 font-medium"
-                                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                                }`}
-                            >
-                                <Icon size={20} />
-                                <span>{item.name}</span>
-                            </Link>
-                        );
-                    })}
+                    <div className="my-2 border-t border-border/50 mx-2" />
+
+                    <NavItem 
+                        href="/dashboard/submission" 
+                        icon={FileText} 
+                        label="My Submissions" 
+                        active={isActive("/dashboard/submission")} 
+                    />
+                    
+                    {(user.role === "student" || user.role === "professor") && (
+                        <NavItem 
+                            href="/contribute" 
+                            icon={Upload} 
+                            label="New Submission" 
+                            active={isActive("/contribute")} 
+                        />
+                    )}
                 </nav>
 
-                <div className="p-4 mt-2 border-t border-slate-100">
-                    <button className="w-full flex items-center space-x-3 px-4 py-3 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
-                        <LogOut size={20} />
-                        <span>Sign Out</span>
-                    </button>
-                </div>
+                {/* --- EDITOR SECTION (Roles: editor, publisher, admin) --- */}
+                {["editor", "publisher", "admin"].includes(user.role) && (
+                    <div className="space-y-1">
+                        <SectionLabel>Editor Panel</SectionLabel>
+                        <NavItem 
+                            href="/dashboard/editor/pending" 
+                            icon={FileCheck} 
+                            label="Pending Reviews" 
+                            active={isActive("/dashboard/editor/pending")} 
+                        />
+                        <NavItem 
+                            href="/dashboard/posts" 
+                            icon={BookOpen} 
+                            label="All Magazine Posts" 
+                            active={isActive("/dashboard/posts")} 
+                        />
+                    </div>
+                )}
+
+                {/* --- ADMIN SECTION (Roles: admin) --- */}
+                {user.role === "admin" && (
+                    <div className="space-y-1">
+                        <SectionLabel>Admin Panel</SectionLabel>
+                        <NavItem 
+                            href="/admin/users" 
+                            icon={Users} 
+                            label="User Management" 
+                            active={isActive("/admin/users")} 
+                        />
+                        <NavItem 
+                            href="/admin/security" 
+                            icon={Shield} 
+                            label="Security Logs" 
+                            active={isActive("/admin/security")} 
+                        />
+                        <NavItem 
+                            href="/admin/analytics" 
+                            icon={BarChart3} 
+                            label="Analytics" 
+                            active={isActive("/admin/analytics")} 
+                        />
+                    </div>
+                )}
             </div>
-        </div>
+
+            {/* Footer Actions */}
+            <div className="p-4 border-t bg-muted/20">
+                <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10" 
+                    onClick={logout}
+                >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                </Button>
+            </div>
+        </aside>
+    );
+}
+
+// Helper Components for cleaner code
+function NavItem({ href, icon: Icon, label, active }: { href: string; icon: any; label: string; active: boolean }) {
+    return (
+        <Link
+            href={href}
+            className={cn(
+                "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-all duration-200",
+                active 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+        >
+            <Icon size={18} strokeWidth={2} />
+            {label}
+        </Link>
+    );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+    return (
+        <p className="px-3 pt-4 pb-2 text-[11px] font-bold text-muted-foreground/70 uppercase tracking-wider">
+            {children}
+        </p>
     );
 }

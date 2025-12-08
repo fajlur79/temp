@@ -6,6 +6,7 @@ import { Inter, Roboto_Mono } from "next/font/google";
 import type React from "react";
 import { Suspense } from "react";
 import "./globals.css";
+import IntroSplash from "@/components/IntroSplash";
 
 const sans = Inter({
     subsets: ["latin"],
@@ -41,9 +42,11 @@ function PageLoading() {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
+        
         <AuthProvider>
             <html lang="en" className={`${sans.variable} ${mono.variable}`}>
                 <body className="font-sans">
+                    <IntroSplash/>
                     <Suspense fallback={<PageLoading />}>
                         <SiteHeader />
                         <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</main>

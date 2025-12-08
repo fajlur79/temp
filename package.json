@@ -9,6 +9,7 @@
         "start": "next start"
     },
     "dependencies": {
+        "@lottiefiles/dotlottie-react": "^0.17.9",
         "@radix-ui/react-accordion": "latest",
         "@radix-ui/react-alert-dialog": "latest",
         "@radix-ui/react-aspect-ratio": "latest",
@@ -37,7 +38,6 @@
         "@radix-ui/react-toggle-group": "latest",
         "@radix-ui/react-tooltip": "latest",
         "@sendgrid/mail": "latest",
-        "@types/papaparse": "^5.5.0",
         "@vercel/blob": "^2.0.0",
         "bcryptjs": "latest",
         "class-variance-authority": "^0.7.1",
@@ -52,6 +52,7 @@
         "jsdom": "^27.2.0",
         "jsonwebtoken": "latest",
         "jszip": "^3.10.1",
+        "lottie-react": "^2.4.1",
         "lucide-react": "^0.555.0",
         "mongoose": "latest",
         "next": "^16.0.6",
@@ -87,7 +88,6 @@
         "@types/node": "^24.10.1",
         "@types/react": "^19.2.7",
         "@types/react-dom": "^19.2.3",
-        "@types/react-window": "^2.0.0",
         "@types/request-ip": "^0.0.41",
         "eslint": "^9.39.1",
         "eslint-config-next": "16.0.6",

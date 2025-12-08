@@ -1,0 +1,363 @@
+/* Intro splash screen break-apart animation styles */
+
+.intro-piece {
+  position: absolute;
+  overflow: hidden;
+  background-color: hsl(var(--background));
+  will-change: transform, opacity;
+  transform-style: preserve-3d;
+  backface-visibility: visible;
+}
+
+/* Each piece has unique fly direction with 3D rotation */
+.intro-piece:nth-child(1) {
+  --fly-x: -300px;
+  --fly-y: -280px;
+  --fly-z: 200px;
+  --rotate-x: 25deg;
+  --rotate-y: -35deg;
+  --rotate-z: -25deg;
+  animation-delay: 0s;
+}
+.intro-piece:nth-child(2) {
+  --fly-x: -120px;
+  --fly-y: -320px;
+  --fly-z: 150px;
+  --rotate-x: -20deg;
+  --rotate-y: 30deg;
+  --rotate-z: 15deg;
+  animation-delay: 0.05s;
+}
+.intro-piece:nth-child(3) {
+  --fly-x: 80px;
+  --fly-y: -300px;
+  --fly-z: 250px;
+  --rotate-x: 30deg;
+  --rotate-y: -25deg;
+  --rotate-z: -10deg;
+  animation-delay: 0.02s;
+}
+.intro-piece:nth-child(4) {
+  --fly-x: 220px;
+  --fly-y: -280px;
+  --fly-z: 180px;
+  --rotate-x: -25deg;
+  --rotate-y: 40deg;
+  --rotate-z: 20deg;
+  animation-delay: 0.08s;
+}
+.intro-piece:nth-child(5) {
+  --fly-x: 380px;
+  --fly-y: -260px;
+  --fly-z: 220px;
+  --rotate-x: 35deg;
+  --rotate-y: -30deg;
+  --rotate-z: -30deg;
+  animation-delay: 0.04s;
+}
+
+.intro-piece:nth-child(6) {
+  --fly-x: -350px;
+  --fly-y: -80px;
+  --fly-z: 170px;
+  --rotate-x: -30deg;
+  --rotate-y: 25deg;
+  --rotate-z: 18deg;
+  animation-delay: 0.1s;
+}
+.intro-piece:nth-child(7) {
+  --fly-x: -180px;
+  --fly-y: -120px;
+  --fly-z: 280px;
+  --rotate-x: 25deg;
+  --rotate-y: -40deg;
+  --rotate-z: -22deg;
+  animation-delay: 0.06s;
+}
+.intro-piece:nth-child(8) {
+  --fly-x: 50px;
+  --fly-y: -150px;
+  --fly-z: 200px;
+  --rotate-x: -35deg;
+  --rotate-y: 35deg;
+  --rotate-z: 12deg;
+  animation-delay: 0.12s;
+}
+.intro-piece:nth-child(9) {
+  --fly-x: 280px;
+  --fly-y: -90px;
+  --fly-z: 240px;
+  --rotate-x: 20deg;
+  --rotate-y: -30deg;
+  --rotate-z: -15deg;
+  animation-delay: 0.03s;
+}
+.intro-piece:nth-child(10) {
+  --fly-x: 400px;
+  --fly-y: -60px;
+  --fly-z: 160px;
+  --rotate-x: -25deg;
+  --rotate-y: 45deg;
+  --rotate-z: 25deg;
+  animation-delay: 0.09s;
+}
+
+.intro-piece:nth-child(11) {
+  --fly-x: -380px;
+  --fly-y: 120px;
+  --fly-z: 230px;
+  --rotate-x: 30deg;
+  --rotate-y: -35deg;
+  --rotate-z: -20deg;
+  animation-delay: 0.07s;
+}
+.intro-piece:nth-child(12) {
+  --fly-x: -150px;
+  --fly-y: 180px;
+  --fly-z: 190px;
+  --rotate-x: -40deg;
+  --rotate-y: 30deg;
+  --rotate-z: 28deg;
+  animation-delay: 0.15s;
+}
+.intro-piece:nth-child(13) {
+  --fly-x: 100px;
+  --fly-y: 140px;
+  --fly-z: 260px;
+  --rotate-x: 35deg;
+  --rotate-y: -25deg;
+  --rotate-z: -18deg;
+  animation-delay: 0.11s;
+}
+.intro-piece:nth-child(14) {
+  --fly-x: 300px;
+  --fly-y: 150px;
+  --fly-z: 200px;
+  --rotate-x: -30deg;
+  --rotate-y: 40deg;
+  --rotate-z: 22deg;
+  animation-delay: 0.04s;
+}
+.intro-piece:nth-child(15) {
+  --fly-x: 420px;
+  --fly-y: 100px;
+  --fly-z: 170px;
+  --rotate-x: 25deg;
+  --rotate-y: -35deg;
+  --rotate-z: -12deg;
+  animation-delay: 0.13s;
+}
+
+.intro-piece:nth-child(16) {
+  --fly-x: -340px;
+  --fly-y: 300px;
+  --fly-z: 210px;
+  --rotate-x: -35deg;
+  --rotate-y: 30deg;
+  --rotate-z: 30deg;
+  animation-delay: 0.08s;
+}
+.intro-piece:nth-child(17) {
+  --fly-x: -130px;
+  --fly-y: 380px;
+  --fly-z: 250px;
+  --rotate-x: 30deg;
+  --rotate-y: -40deg;
+  --rotate-z: -25deg;
+  animation-delay: 0.16s;
+}
+.intro-piece:nth-child(18) {
+  --fly-x: 120px;
+  --fly-y: 340px;
+  --fly-z: 180px;
+  --rotate-x: -25deg;
+  --rotate-y: 35deg;
+  --rotate-z: 15deg;
+  animation-delay: 0.06s;
+}
+.intro-piece:nth-child(19) {
+  --fly-x: 260px;
+  --fly-y: 400px;
+  --fly-z: 230px;
+  --rotate-x: 40deg;
+  --rotate-y: -30deg;
+  --rotate-z: -28deg;
+  animation-delay: 0.18s;
+}
+.intro-piece:nth-child(20) {
+  --fly-x: 380px;
+  --fly-y: 350px;
+  --fly-z: 200px;
+  --rotate-x: -30deg;
+  --rotate-y: 45deg;
+  --rotate-z: 20deg;
+  animation-delay: 0.1s;
+}
+
+/* 3D fly-away animation with depth */
+@keyframes flyAwayCustom {
+  0% {
+    transform: translate3d(0, 0, 0) rotateX(0) rotateY(0) rotateZ(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--fly-x), var(--fly-y), var(--fly-z)) rotateX(var(--rotate-x)) rotateY(var(--rotate-y))
+      rotateZ(var(--rotate-z));
+    opacity: 0;
+  }
+}
+
+.intro-piece.animate {
+  animation: flyAwayCustom 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation-delay: var(--delay, 0s);
+}
+
+/* ============================================
+   Paper Plane Animation Styles
+   ============================================ */
+
+.paper-plane-container {
+  position: absolute;
+  overflow: visible;
+  z-index: 10;
+  transform-style: preserve-3d;
+}
+
+.piece-to-plane {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: hsl(var(--background));
+  transform-origin: center center;
+  transition: none;
+}
+
+/* Folding animation - piece crumples into smaller shape */
+.piece-to-plane.folding {
+  animation: foldToPaper 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes foldToPaper {
+  0% {
+    transform: perspective(800px) rotateX(0deg) rotateY(0deg) scale(1);
+    opacity: 1;
+  }
+  30% {
+    transform: perspective(800px) rotateX(15deg) rotateY(-10deg) scale(0.9);
+  }
+  60% {
+    transform: perspective(800px) rotateX(-20deg) rotateY(25deg) scale(0.6);
+  }
+  100% {
+    transform: perspective(800px) rotateX(0deg) rotateY(45deg) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* Paper plane wrapper - handles the elliptical flight path */
+.paper-plane-wrapper {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: ellipticalFlight 2.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+.paper-plane {
+  width: 100%;
+  height: 100%;
+  animation: planeRotation 2.5s ease-in-out forwards;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Half-ellipse path: starts at piece position, curves toward viewer (scale up),
+   then U-turns toward top-right corner */
+@keyframes ellipticalFlight {
+  0% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(0.5);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  /* Coming toward viewer - scale up, move slightly down-left */
+  25% {
+    transform: translate(-50%, -50%) translate3d(-100px, 50px, 400px) scale(1.8);
+    opacity: 1;
+  }
+  /* Peak of the curve - closest to viewer */
+  45% {
+    transform: translate(-50%, -50%) translate3d(50px, -20px, 500px) scale(2.2);
+    opacity: 1;
+  }
+  /* U-turn begins - starting to move toward top-right */
+  65% {
+    transform: translate(-50%, -50%) translate3d(250px, -150px, 300px) scale(1.5);
+    opacity: 1;
+  }
+  /* Accelerating toward top-right corner */
+  85% {
+    transform: translate(-50%, -50%) translate3d(500px, -350px, 100px) scale(1);
+    opacity: 0.8;
+  }
+  /* Exit top-right corner */
+  100% {
+    transform: translate(-50%, -50%) translate3d(800px, -500px, -100px) scale(0.5);
+    opacity: 0;
+  }
+}
+
+/* Plane rotation - tilts as it flies along the curve */
+@keyframes planeRotation {
+  0% {
+    transform: rotate(-30deg) rotateY(0deg);
+  }
+  /* Banking left as it comes toward viewer */
+  25% {
+    transform: rotate(-15deg) rotateY(-20deg);
+  }
+  /* Level at peak */
+  45% {
+    transform: rotate(5deg) rotateY(10deg);
+  }
+  /* Banking right for U-turn */
+  65% {
+    transform: rotate(25deg) rotateY(30deg);
+  }
+  /* Steeper bank toward top-right */
+  85% {
+    transform: rotate(40deg) rotateY(15deg);
+  }
+  /* Final exit angle */
+  100% {
+    transform: rotate(50deg) rotateY(0deg);
+  }
+}
+
+/* Trail effect behind the plane */
+.paper-plane-wrapper::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(to left, hsl(var(--primary) / 0.6), transparent);
+  transform: translateY(-50%) translateX(-100%);
+  border-radius: 2px;
+  animation: trailPulse 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes trailPulse {
+  0% {
+    opacity: 0.4;
+    width: 40px;
+  }
+  100% {
+    opacity: 0.8;
+    width: 70px;
+  }
+}

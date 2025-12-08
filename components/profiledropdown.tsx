@@ -119,26 +119,26 @@ export function ProfileDropdown() {
                 {/* Menu Items */}
                 <DropdownMenuGroup>
                     <DropdownMenuItem asChild>
-                        <Link href="/profile" className="cursor-pointer">
+                        <Link href="/dashboard" className="cursor-pointer">
+                            <User className="mr-2 h-4 w-4" />
+                            <span>Dashboard</span>
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                        <Link href="/dashboard/profile" className="cursor-pointer">
                             <User className="mr-2 h-4 w-4" />
                             <span>My Profile</span>
                         </Link>
                     </DropdownMenuItem>
 
                     <DropdownMenuItem asChild>
-                        <Link href="/settings" className="cursor-pointer">
+                        <Link href="/dashboard/settings" className="cursor-pointer">
                             <Settings className="mr-2 h-4 w-4" />
                             <span>Settings</span>
                         </Link>
                     </DropdownMenuItem>
 
-                    {/* Show 2FA badge if enabled */}
-                    {user.two_factor_enabled && (
-                        <DropdownMenuItem disabled className="text-xs">
-                            <Shield className="mr-2 h-3 w-3 text-green-600" />
-                            <span className="text-green-600">2FA Enabled</span>
-                        </DropdownMenuItem>
-                    )}
+                    
                 </DropdownMenuGroup>
 
                 <DropdownMenuSeparator />
