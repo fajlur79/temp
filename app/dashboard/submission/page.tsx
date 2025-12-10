@@ -1,78 +1,120 @@
 "use client";
 
-import { Edit3, Lightbulb, Loader2, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ProtectedRoute } from "@/contexts/AuthContext";
+import { Calendar, Edit3, Eye, FileText } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
+import useSWR from "swr";
 
-const MOCK_SUBMISSIONS = [
-    { id: "1", title: "The Future of Digital Typography", status: "approved", date: "2023-10-24", views: 1240 },
-    { id: "2", title: "Minimalism in Modern Architecture", status: "pending", date: "2023-11-02", views: 0 },
-    { id: "3", title: "Sustainable Living: A Guide", status: "rejected", date: "2023-09-15", views: 45 },
-];
+const fetcher = async (url: string) => {
+    const res = await fetch(url, { credentials: "include" });
+    if (!res.ok) throw new Error("Failed to fetch");
+    return res.json();
+};
 
 export default function SubmissionsPage() {
-    const [isGeneratingIdeas, setIsGeneratingIdeas] = useState(false);
-    const [aiIdeas, setAiIdeas] = useState<string[]>([]);
+    return (
+        <ProtectedRoute>
+            <SubmissionsContent />
+        </ProtectedRoute>
+    );
+}
+
+function SubmissionsContent() {
     const [filter, setFilter] = useState("all");
 
-    const handleGenerateIdeas = async () => {
-        if (isGeneratingIdeas) return;
-        setIsGeneratingIdeas(true);
-        try {
-            const prompt = `Generate 3 catchy article titles for a senior tech writer. Return only titles separated by newlines.`;
-            const response = await fetch("/api/ai-helper", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt }),
-            });
-            const data = await response.json();
-            const ideas = data.text.split("\n").filter((l: string) => l.trim().length > 0);
-            setAiIdeas(ideas);
-        } catch (e) {
-            alert("Failed to generate ideas");
-        } finally {
-            setIsGeneratingIdeas(false);
-        }
-    };
+    // Fetch user's posts
+    const { data, error, isLoading } = useSWR("/api/posts/my-submissions", fetcher);
 
-    const filtered = filter === "all" ? MOCK_SUBMISSIONS : MOCK_SUBMISSIONS.filter(s => s.status === filter);
+    // Filter posts by status
+    const filtered = data?.posts
+        ? filter === "all"
+            ? data.posts
+            : data.posts.filter((post: any) => {
+                  if (filter === "published") return post.status === "PUBLISHED";
+                  if (filter === "pending") return post.status === "PENDING_REVIEW";
+                  if (filter === "approved") return ["ACCEPTED", "DESIGNING", "APPROVED"].includes(post.status);
+                  return true;
+              })
+        : [];
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            {/* AI Hero Section */}
-            <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-xl shadow-md p-6 text-white relative overflow-hidden">
-                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div>
-                        <h3 className="font-bold text-lg flex items-center gap-2">
-                            <Sparkles className="text-yellow-300" size={20} /> Need Inspiration?
-                        </h3>
-                        <p className="text-indigo-100 text-sm">Let AI generate article titles for you.</p>
-                    </div>
-                    <button
-                        onClick={handleGenerateIdeas}
-                        disabled={isGeneratingIdeas}
-                        className="px-5 py-2 bg-white text-indigo-600 font-semibold rounded-lg hover:bg-indigo-50 flex items-center gap-2"
-                    >
-                        {isGeneratingIdeas ? <Loader2 className="animate-spin" size={18} /> : <Lightbulb size={18} />}
-                        <span>{isGeneratingIdeas ? "Thinking..." : "Inspire Me"}</span>
-                    </button>
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight">My Submissions</h2>
+                    <p className="text-muted-foreground mt-1">
+                        Track and manage your article submissions
+                    </p>
                 </div>
-                {aiIdeas.length > 0 && (
-                    <div className="mt-6 pt-6 border-t border-indigo-500/30 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {aiIdeas.map((idea, i) => (
-                            <div key={i} className="bg-white/10 p-3 rounded-lg text-sm font-medium">
-                                "{idea}"
-                            </div>
-                        ))}
-                    </div>
-                )}
+                <Button asChild>
+                    <Link href="/contribute">
+                        <FileText className="mr-2 h-4 w-4" />
+                        New Submission
+                    </Link>
+                </Button>
             </div>
+
+            {/* Stats Cards */}
+            {data?.stats && (
+                <div className="grid gap-4 md:grid-cols-4">
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                                Total Submissions
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{data.stats.total}</div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                                Published
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-green-600">{data.stats.published}</div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                                Pending Review
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-amber-600">{data.stats.pending}</div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                                In Progress
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-blue-600">{data.stats.in_progress}</div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
             {/* Submissions List */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h2 className="font-semibold text-slate-800">My Articles</h2>
                     <div className="flex gap-2">
-                        {["all", "approved", "pending"].map(f => (
+                        {["all", "published", "pending", "approved"].map(f => (
                             <button
                                 key={f}
                                 onClick={() => setFilter(f)}
@@ -85,32 +127,80 @@ export default function SubmissionsPage() {
                         ))}
                     </div>
                 </div>
+
                 <div className="divide-y divide-slate-100">
-                    {filtered.map(sub => (
-                        <div key={sub.id} className="p-6 flex justify-between items-center hover:bg-slate-50">
-                            <div>
-                                <h4 className="font-medium text-slate-900">{sub.title}</h4>
-                                <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                                    <span
-                                        className={`px-2 py-0.5 rounded-full capitalize ${
-                                            sub.status === "approved"
-                                                ? "bg-emerald-100 text-emerald-800"
-                                                : sub.status === "pending"
-                                                ? "bg-amber-100 text-amber-800"
-                                                : "bg-rose-100 text-rose-800"
-                                        }`}
-                                    >
-                                        {sub.status}
-                                    </span>
-                                    <span>{sub.date}</span>
-                                    {sub.views > 0 && <span>• {sub.views} Views</span>}
-                                </div>
-                            </div>
-                            <button className="p-2 text-slate-400 hover:text-indigo-600">
-                                <Edit3 size={18} />
-                            </button>
+                    {isLoading ? (
+                        <div className="p-6 space-y-4">
+                            {Array.from({ length: 3 }).map((_, i) => (
+                                <Skeleton key={i} className="h-20 w-full" />
+                            ))}
                         </div>
-                    ))}
+                    ) : error ? (
+                        <div className="p-6 text-center">
+                            <p className="text-red-600 font-medium mb-2">Failed to load submissions</p>
+                            <p className="text-sm text-muted-foreground">{error.message}</p>
+                        </div>
+                    ) : filtered.length === 0 ? (
+                        <div className="p-12 text-center">
+                            <FileText className="mx-auto h-12 w-12 text-slate-300 mb-4" />
+                            <p className="text-slate-600 mb-2">No submissions found</p>
+                            <p className="text-sm text-slate-500 mb-4">
+                                {filter === "all" 
+                                    ? "Start by creating your first submission"
+                                    : `No ${filter} submissions`}
+                            </p>
+                            <Button asChild variant="outline" size="sm">
+                                <Link href="/contribute">Create Submission</Link>
+                            </Button>
+                        </div>
+                    ) : (
+                        filtered.map((sub: any) => (
+                            <div key={sub._id} className="p-6 flex justify-between items-center hover:bg-slate-50">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <h4 className="font-medium text-slate-900">{sub.title}</h4>
+                                        <Badge
+                                            variant="outline"
+                                            className={`capitalize ${
+                                                sub.status === "PUBLISHED"
+                                                    ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                                                    : sub.status === "PENDING_REVIEW"
+                                                    ? "bg-amber-100 text-amber-800 border-amber-300"
+                                                    : sub.status === "REJECTED"
+                                                    ? "bg-rose-100 text-rose-800 border-rose-300"
+                                                    : "bg-blue-100 text-blue-800 border-blue-300"
+                                            }`}
+                                        >
+                                            {sub.status.replace("_", " ")}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-xs text-slate-500">
+                                        <span className="flex items-center gap-1">
+                                            <Calendar className="h-3 w-3" />
+                                            {new Date(sub.created_at).toLocaleDateString()}
+                                        </span>
+                                        <span className="capitalize">{sub.category || "Uncategorized"}</span>
+                                        {sub.views > 0 && (
+                                            <span className="flex items-center gap-1">
+                                                <Eye className="h-3 w-3" />
+                                                {sub.views} Views
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                <Button
+                                    asChild
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-slate-400 hover:text-indigo-600"
+                                >
+                                    <Link href={`/post/${sub._id}`}>
+                                        <Edit3 size={18} />
+                                    </Link>
+                                </Button>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
         </div>

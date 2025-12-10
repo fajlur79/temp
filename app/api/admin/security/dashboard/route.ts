@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth/middleware";
 import { dbConnect } from "@/lib/mongoose";
 import { blockIP, getSecurityDashboard, unblockIP } from "@/lib/security/monitoring";
 import { NextResponse } from "next/server";
+import RegisteredUsers from "@/app/models/RegisteredUser";
 
 // GET - View security dashboard
 export async function GET(req: Request) {
@@ -13,10 +14,10 @@ export async function GET(req: Request) {
         await dbConnect();
 
         // TODO: Add admin role check
-        // const dbUser = await RegisteredUsers.findOne({ id_number: user.id_number });
-        // if (!dbUser.is_admin) {
-        //     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
-        // }
+        const dbUser = await RegisteredUsers.findOne({ id_number: user.id_number });
+        if (!dbUser.is_admin) {
+            return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+        }
 
         const { searchParams } = new URL(req.url);
         const hours = parseInt(searchParams.get("hours") || "24");

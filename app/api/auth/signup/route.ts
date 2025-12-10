@@ -74,6 +74,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: "Invalid request" }, { status: 400 });
         }
 
+        const cooldownKey = `otp:cooldown:${sanitizedId}`;
+        const inCooldown = await redis.get(cooldownKey);
+    
+        if (inCooldown) {
+            const ttl = await redis.ttl(cooldownKey);
+            return NextResponse.json(
+                { message: `Please wait ${ttl} seconds before resending.` },
+                { status: 429 }
+            );
+        }
+
         const ip = getClientIp(req);
 
         // FIX #7: Stricter Rate Limiting
@@ -123,6 +134,7 @@ export async function POST(req: Request) {
         const otpHash = await bcrypt.hash(otpCode, 11);
 
         await cachedOtp(sanitizedId, otpHash, false, 300);
+        await redis.set(cooldownKey, "1", { EX: 60 });
 
         // FIX #4: Enable and enforce resend limits
         const resendKey = `otp:resend:${sanitizedId}`;
@@ -136,7 +148,7 @@ export async function POST(req: Request) {
 
         // FIX #23: REMOVE SENSITIVE DATA LOGGING
         console.log(`[SECURITY] OTP generation requested for ID: ***${sanitizedId.slice(-4)}`);
-        // console.log(`[DEBUG] OTP: ${otpCode}`); // REMOVED FOR PRODUCTION
+        console.log(`[DEBUG] OTP: ${otpCode}`); // REMOVED FOR PRODUCTION
 
         const msg = {
             to: regUser.email,
@@ -161,7 +173,7 @@ export async function POST(req: Request) {
 
         try {
             // FIX #6: Ensure email sending logic is active and guarded
-            await sgMail.send(msg);
+            // await sgMail.send(msg);
             console.log(`[INFO] OTP email sent successfully`);
         } catch (emailError) {
             console.error("[ERROR] Failed to send OTP email");

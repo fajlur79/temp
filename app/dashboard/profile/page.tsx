@@ -1,9 +1,9 @@
 "use client";
 
-import { Camera, Facebook, Instagram, Linkedin, Loader2, Sparkles, Twitter } from "lucide-react";
+import { Camera, Facebook, Instagram, Linkedin, Loader2, Twitter } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext"; // Assuming you have this
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,16 +20,15 @@ interface UserProfile {
     social_links: {
         facebook?: string;
         instagram?: string;
-        twitter?: string; // Replaced Youtube with Twitter/Linkedin to match DB
+        twitter?: string;
         linkedin?: string;
     };
 }
 
 export default function ProfilePage() {
-    const { user: authUser, checkAuth } = useAuth(); // Get base user from context
+    const { user: authUser, checkAuth } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [isGeneratingBio, setIsGeneratingBio] = useState(false);
     
     // Local state for the form
     const [formData, setFormData] = useState<UserProfile>({
@@ -104,37 +103,20 @@ export default function ProfilePage() {
         }
     };
 
-    // 3. AI Bio Generation (Keep existing logic but update state)
-    const handleRewriteBio = async () => {
-        if (isGeneratingBio) return;
-        setIsGeneratingBio(true);
-        try {
-            const prompt = `Rewrite this bio to be professional for a Magazine contributor. Name: ${formData.name}, Role: ${formData.role}. Current Bio: "${formData.bio}". Return only the text.`;
-            const response = await fetch("/api/ai-helper", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt }),
-            });
-            const data = await response.json();
-            if (data.text) {
-                setFormData(prev => ({ ...prev, bio: data.text.trim() }));
-                toast.success("Bio generated!");
-            }
-        } catch (error) {
-            toast.error("AI generation failed");
-        } finally {
-            setIsGeneratingBio(false);
-        }
-    };
-
-    if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>;
+    if (loading) {
+        return (
+            <div className="p-8 flex justify-center">
+                <Loader2 className="animate-spin text-primary" />
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Profile</h2>
-                    <p className="text-muted-foreground">Manage your public persona and info.</p>
+                    <p className="text-muted-foreground mt-1">Manage your public persona and info.</p>
                 </div>
                 <Button onClick={handleSave} disabled={saving}>
                     {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -188,23 +170,16 @@ export default function ProfilePage() {
                         </div>
 
                         <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label>Bio</Label>
-                                <button
-                                    onClick={handleRewriteBio}
-                                    disabled={isGeneratingBio}
-                                    className="text-xs flex items-center gap-1 text-primary hover:underline disabled:opacity-50"
-                                >
-                                    <Sparkles size={12} />
-                                    {isGeneratingBio ? "Writing..." : "Enhance with AI"}
-                                </button>
-                            </div>
+                            <Label>Bio</Label>
                             <Textarea 
                                 value={formData.bio} 
                                 onChange={e => setFormData({ ...formData, bio: e.target.value })} 
                                 className="min-h-[100px]"
                                 placeholder="Tell us about yourself..."
                             />
+                            <p className="text-xs text-muted-foreground">
+                                Brief description for your profile. Will be displayed on your published articles.
+                            </p>
                         </div>
                     </CardContent>
                 </Card>
