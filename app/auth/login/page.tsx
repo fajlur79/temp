@@ -1,116 +1,37 @@
-// app/auth/login/page.tsx
 "use client";
 
-import { AlertCircle, BookOpen, Eye, EyeOff, Loader2, LogIn, Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { BookOpen, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
-const sanitizeInput = (input: string): string => {
-    return input
-        .trim()
-        .replace(/[<>\"']/g, "")
-        .replace(/javascript:/gi, "")
-        .replace(/on\w+=/gi, "")
-        .slice(0, 100);
-};
-
-export default function LoginPage() {
+function LoginContent() {
     const router = useRouter();
-    const [idNumber, setIdNumber] = useState("");
-    const [password, setPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
+    const searchParams = useSearchParams();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    // SECURITY: Track rate limiting and lockout
-    const [accountLocked, setAccountLocked] = useState(false);
-    const [lockTimeRemaining, setLockTimeRemaining] = useState(0);
-    const [attemptCount, setAttemptCount] = useState(0);
-
-    // Timer for account lock
     useEffect(() => {
-        if (lockTimeRemaining <= 0) {
-            setAccountLocked(false);
-            return;
+        const errorParam = searchParams.get("error");
+        if (errorParam) {
+            const errorMessages: Record<string, string> = {
+                oauth_failed: "Authentication failed. Please try again.",
+                oauth_cancelled: "Authentication was cancelled.",
+                no_code: "Invalid authentication response.",
+                account_inactive: "Your account has been deactivated. Contact support.",
+                authentication_failed: "Authentication failed. Please try again.",
+            };
+            setError(errorMessages[errorParam] || "An error occurred. Please try again.");
         }
-        const timer = setInterval(() => setLockTimeRemaining(prev => prev - 1), 1000);
-        return () => clearInterval(timer);
-    }, [lockTimeRemaining]);
+    }, [searchParams]);
 
-    const formatTime = (seconds: number) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, "0")}`;
-    };
-
-    const handleLogin = useCallback(async () => {
-        setError("");
-        const sanitizedId = sanitizeInput(idNumber);
-        const sanitizedPassword = sanitizeInput(password);
-
-        if (!sanitizedId || !sanitizedPassword) {
-            setError("Please fill in all fields");
-            return;
-        }
-
-        if (!/^[a-zA-Z0-9]{4,20}$/.test(sanitizedId)) {
-            setError("Invalid ID format");
-            return;
-        }
-
-        if (accountLocked) {
-            setError(`Account locked. Try again in ${formatTime(lockTimeRemaining)}`);
-            return;
-        }
-
+    const handleGoogleLogin = () => {
         setLoading(true);
-
-        try {
-            const response = await fetch("/api/auth/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ id_number: sanitizedId, password: sanitizedPassword }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                // SECURITY: Handle rate limiting
-                if (response.status === 429) {
-                    if (data.locked_until) {
-                        setAccountLocked(true);
-                        setLockTimeRemaining(data.locked_until);
-                    }
-                    throw new Error(data.message || "Too many attempts. Please try again later.");
-                }
-
-                // SECURITY: Increment attempt counter on failure
-                setAttemptCount(prev => prev + 1);
-                throw new Error(data.message || "Login failed");
-            }
-
-            // SECURITY: Clear attempt counter on success
-            setAttemptCount(0);
-
-            // Redirect based on role
-            if (data.role === "admin") {
-                router.push("/admin"); // Admin goes to /admin
-            } else {
-                window.location.href = "/";
-                // router.push("/"); // Regular users go to home
-                // router.refresh(); // Refresh to load user-specific data
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Login failed. Please try again.");
-        } finally {
-            setLoading(false);
-        }
-    }, [idNumber, password, router, accountLocked, lockTimeRemaining]);
-
-    const handleKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter" && !loading && !accountLocked) handleLogin();
+        setError("");
+        window.location.href = "/api/auth/google";
     };
 
     return (
@@ -132,112 +53,64 @@ export default function LoginPage() {
                     {/* Title */}
                     <div className="mb-6">
                         <h2 className="text-2xl font-bold text-slate-900 mb-1">Welcome Back</h2>
-                        <p className="text-slate-600 text-sm">Sign in to access your account</p>
+                        <p className="text-slate-600 text-sm">Sign in with your Google account</p>
                     </div>
 
-                    {/* Alert */}
+                    {/* Error Alert */}
                     {error && (
-                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                            <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                            <p className="text-sm text-red-800">{error}</p>
-                        </div>
+                        <Alert variant="destructive" className="mb-6">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
                     )}
 
-                    {/* SECURITY: Account locked warning */}
-                    {accountLocked && (
-                        <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                            <div className="flex items-center gap-2 mb-1">
-                                <Shield className="w-4 h-4 text-orange-600" />
-                                <p className="text-sm text-orange-800 font-medium">Account Temporarily Locked</p>
-                            </div>
-                            <p className="text-sm text-orange-700">
-                                Too many failed attempts. Try again in {formatTime(lockTimeRemaining)}
-                            </p>
-                        </div>
-                    )}
-
-                    {/* SECURITY: Warning after multiple failed attempts */}
-                    {attemptCount >= 3 && attemptCount < 5 && !accountLocked && (
-                        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <p className="text-sm text-yellow-800">
-                                Warning: {5 - attemptCount} attempt{5 - attemptCount !== 1 ? "s" : ""} remaining before
-                                temporary lockout
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Form */}
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">ID Number</label>
-                            <input
-                                type="text"
-                                value={idNumber}
-                                onChange={e => setIdNumber(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                placeholder="Enter your ID number"
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-                                maxLength={20}
-                                autoComplete="username"
-                                disabled={loading || accountLocked}
-                            />
-                        </div>
-
-                        <div>
-                            <div className="flex items-center justify-between mb-1">
-                                <label className="block text-sm font-medium text-slate-700">Password</label>
-                                <Link
-                                    href="/auth/forgot-password"
-                                    className="text-xs text-slate-600 hover:text-slate-900 font-medium"
-                                >
-                                    Forgot password?
-                                </Link>
-                            </div>
-                            <div className="relative">
-                                <input
-                                    type={showPassword ? "text" : "password"}
-                                    value={password}
-                                    onChange={e => setPassword(e.target.value)}
-                                    onKeyPress={handleKeyPress}
-                                    placeholder="Enter your password"
-                                    className="w-full px-4 py-2.5 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-                                    autoComplete="current-password"
-                                    disabled={loading || accountLocked}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                                    disabled={accountLocked}
-                                >
-                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
-                            </div>
-                        </div>
-
-                        <button
-                            onClick={handleLogin}
-                            disabled={loading || !idNumber || !password || accountLocked}
-                            className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
-                        >
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
-                            {loading ? "Signing in..." : "Sign In"}
-                        </button>
-                    </div>
+                    {/* Google Sign In Button */}
+                    <Button
+                        onClick={handleGoogleLogin}
+                        disabled={loading}
+                        className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 font-medium py-6 text-base shadow-sm"
+                        size="lg"
+                    >
+                        {loading ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                            <>
+                                <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
+                                    <path
+                                        fill="#4285F4"
+                                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                                    />
+                                    <path
+                                        fill="#34A853"
+                                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                                    />
+                                    <path
+                                        fill="#FBBC05"
+                                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                                    />
+                                    <path
+                                        fill="#EA4335"
+                                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                                    />
+                                </svg>
+                                Sign in with Google
+                            </>
+                        )}
+                    </Button>
 
                     {/* Divider */}
                     <div className="my-6 flex items-center gap-3">
                         <div className="flex-1 h-px bg-slate-200" />
-                        <span className="text-xs text-slate-500 uppercase">Or</span>
+                        <span className="text-xs text-slate-500 uppercase">Secure Login</span>
                         <div className="flex-1 h-px bg-slate-200" />
                     </div>
 
-                    {/* Sign Up Link */}
+                    {/* Info */}
                     <div className="text-center text-sm text-slate-600">
-                        Don't have an account?{" "}
-                        <Link href="/auth/signup" className="text-slate-900 font-medium hover:underline">
-                            Create one
-                        </Link>
+                        <p className="mb-2">Sign in with your college Google account</p>
+                        <p className="text-xs text-slate-500">
+                            Only authorized users can access the system
+                        </p>
                     </div>
 
                     {/* Back to Home */}
@@ -304,12 +177,13 @@ export default function LoginPage() {
                     {/* Security Feature */}
                     <div className="p-6 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
                         <div className="flex items-center gap-3 mb-3">
-                            <Shield className="w-5 h-5 text-green-400" />
-                            <p className="text-sm font-semibold">Secured with Advanced Protection</p>
+                            <svg className="w-5 h-5 text-green-400" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z" />
+                            </svg>
+                            <p className="text-sm font-semibold">Secured with Google OAuth</p>
                         </div>
                         <p className="text-sm text-slate-300">
-                            Your account is protected with rate limiting, lockout mechanisms, and secure session
-                            management.
+                            Your account is protected with enterprise-grade Google authentication.
                         </p>
                     </div>
                 </div>
@@ -319,5 +193,13 @@ export default function LoginPage() {
                 <div className="absolute bottom-10 left-10 w-16 h-16 border-2 border-white/20 rounded-lg rotate-45" />
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>}>
+            <LoginContent />
+        </Suspense>
     );
 }

@@ -1,70 +1,130 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import type { Role } from "@/app/models/Profiles";
 
-interface User {
-    id_number: string;
+// User type
+export interface User {
+    userId: string;  // MongoDB _id
     name: string;
     email: string;
-    role: "student" | "professor" | "editor" | "admin" | "publisher";
-    profile_picture_url?: string;
-    // Add other fields as needed
+    roles: Role[];
+    profile_picture_url?: string | null;
+    bio?: string;
 }
 
+// Auth context type
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (userData: User) => void;
-    logout: () => void;
     checkAuth: () => Promise<void>;
+    logout: () => Promise<void>;
+    hasRole: (role: Role) => boolean;
+    hasAnyRole: (roles: Role[]) => boolean;
+    hasAllRoles: (roles: Role[]) => boolean;
+    getPrimaryRole: () => Role;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
-    const router = useRouter();
 
     const checkAuth = async () => {
         try {
-            const res = await fetch("/api/user/profile");
+            const res = await fetch("/api/user/profile", {
+                credentials: "include",
+            });
+
             if (res.ok) {
                 const data = await res.json();
-                setUser(data.user);
+                setUser({
+                    userId: data.user._id || data.user.userId,
+                    name: data.user.name,
+                    email: data.user.email,
+                    roles: data.user.roles || ["user"],
+                    profile_picture_url: data.user.profile_picture_url,
+                    bio: data.user.bio,
+                });
             } else {
                 setUser(null);
             }
         } catch (error) {
-            console.error("Auth check failed", error);
+            console.error("Auth check failed:", error);
             setUser(null);
         } finally {
             setLoading(false);
         }
     };
 
+    const logout = async () => {
+        try {
+            await fetch("/api/auth/logout", {
+                method: "POST",
+                credentials: "include",
+            });
+        } catch (error) {
+            console.error("Logout failed:", error);
+        } finally {
+            setUser(null);
+            window.location.href = "/";
+        }
+    };
+
+    const hasRole = (role: Role): boolean => {
+        if (!user) return false;
+        if (user.roles.includes("admin")) return true;
+        return user.roles.includes(role);
+    };
+
+    const hasAnyRole = (roles: Role[]): boolean => {
+        if (!user) return false;
+        if (user.roles.includes("admin")) return true;
+        return roles.some(role => user.roles.includes(role));
+    };
+
+    const hasAllRoles = (roles: Role[]): boolean => {
+        if (!user) return false;
+        if (user.roles.includes("admin")) return true;
+        return roles.every(role => user.roles.includes(role));
+    };
+
+    const getPrimaryRole = (): Role => {
+        if (!user || user.roles.length === 0) return "user";
+        
+        const hierarchy: Record<Role, number> = {
+            admin: 4,
+            publisher: 3,
+            editor: 2,
+            user: 1,
+        };
+        
+        const sorted = [...user.roles].sort((a, b) => hierarchy[b] - hierarchy[a]);
+        return sorted[0];
+    };
+
     useEffect(() => {
         checkAuth();
     }, []);
 
-    const login = (userData: User) => {
-        setUser(userData);
-        // Optional: specific redirects based on role could go here
-    };
-
-    const logout = async () => {
-        try {
-            await fetch("/api/auth/logout", { method: "POST" });
-            setUser(null);
-            router.push("/auth/login");
-        } catch (error) {
-            console.error("Logout failed", error);
-        }
-    };
-
-    return <AuthContext.Provider value={{ user, loading, login, logout, checkAuth }}>{children}</AuthContext.Provider>;
+    return (
+        <AuthContext.Provider
+            value={{
+                user,
+                loading,
+                checkAuth,
+                logout,
+                hasRole,
+                hasAnyRole,
+                hasAllRoles,
+                getPrimaryRole,
+            }}
+        >
+            {children}
+        </AuthContext.Provider>
+    );
 }
 
 export function useAuth() {
@@ -75,47 +135,51 @@ export function useAuth() {
     return context;
 }
 
-// PROTECTED ROUTE WRAPPER
-// Updates: Added 'allowedRoles' prop for RBAC
-interface ProtectedRouteProps {
-    children: React.ReactNode;
-    allowedRoles?: string[];
-}
-
-export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+// Protected Route Component
+export function ProtectedRoute({
+    children,
+    allowedRoles,
+}: {
+    children: ReactNode;
+    allowedRoles?: Role[];
+}) {
     const { user, loading } = useAuth();
     const router = useRouter();
-    const pathname = usePathname();
 
     useEffect(() => {
         if (!loading) {
-            // 1. Not Logged In -> Redirect to Login
             if (!user) {
-                // Encode the current path to redirect back after login
-                router.push(`/auth/login?redirect=${encodeURIComponent(pathname)}`);
-                return;
-            }
-
-            // 2. Role Check (if roles are specified) -> Redirect to Unauthorized
-            if (allowedRoles && allowedRoles.length > 0) {
-                if (!allowedRoles.includes(user.role)) {
+                router.push("/auth/login");
+            } else if (allowedRoles && allowedRoles.length > 0) {
+                // Check if user has ANY of the allowed roles
+                const hasAccess = allowedRoles.some(role => 
+                    user.roles.includes("admin") || user.roles.includes(role)
+                );
+                
+                if (!hasAccess) {
                     router.push("/unauthorized");
                 }
             }
         }
-    }, [user, loading, router, allowedRoles, pathname]);
+    }, [user, loading, allowedRoles, router]);
 
     if (loading) {
         return (
             <div className="flex h-screen w-full items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
         );
     }
 
-    // Only render children if authorized
     if (!user) return null;
-    if (allowedRoles && !allowedRoles.includes(user.role)) return null;
+
+    if (allowedRoles && allowedRoles.length > 0) {
+        const hasAccess = allowedRoles.some(role => 
+            user.roles.includes("admin") || user.roles.includes(role)
+        );
+        
+        if (!hasAccess) return null;
+    }
 
     return <>{children}</>;
 }

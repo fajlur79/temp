@@ -1,4 +1,5 @@
-import Profile from "@/app/models/Profiles";
+// app/api/user/profile/route.ts
+import Profiles from "@/app/models/Profiles";
 import { dbConnect } from "@/lib/mongoose";
 import redis from "@/lib/redis";
 import jwt from "jsonwebtoken";
@@ -36,22 +37,21 @@ export async function GET(req: Request) {
             }
         }
 
-        const profile = await Profile.findOne({ id_number: decoded.id_number }).select("-password -__v");
+        const profile = await Profiles.findById(decoded.userId).select("-__v");
 
-        if (!profile) {
-            return NextResponse.json({ message: "Profile not found" }, { status: 404 });
+        if (!profile || !profile.is_active) {
+            return NextResponse.json({ message: "Profile not found or inactive" }, { status: 404 });
         }
 
         return NextResponse.json(
             {
                 user: {
-                    id_number: profile.id_number,
+                    _id: profile._id,
+                    userId: profile._id.toString(),
                     name: profile.name,
                     email: profile.email,
-                    two_factor_enabled: profile.two_factor_enabled || false,
-                    role: profile.role || "user",
-                    // ADDED: Return the profile picture URL
-                    profile_picture_url: profile.profile_picture_url || null,
+                    roles: profile.roles,
+                    profile_picture_url: profile.profile_picture_url || profile.google_picture,
                     bio: profile.bio || "",
                     social_links: profile.social_links || {},
                 },
@@ -83,7 +83,7 @@ export async function PATCH(req: Request) {
         const body = await req.json();
         const { name, bio, social_links } = body;
 
-        const profile = await Profile.findOne({ id_number: decoded.id_number });
+        const profile = await Profiles.findById(decoded.userId);
         if (!profile) return NextResponse.json({ message: "Profile not found" }, { status: 404 });
 
         if (name) profile.name = name.trim();
@@ -98,7 +98,7 @@ export async function PATCH(req: Request) {
                 user: {
                     name: profile.name,
                     email: profile.email,
-                    profile_picture_url: profile.profile_picture_url,
+                    profile_picture_url: profile.profile_picture_url || profile.google_picture,
                     bio: profile.bio,
                     social_links: profile.social_links,
                 },

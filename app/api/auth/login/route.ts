@@ -70,7 +70,7 @@ export async function POST(req: Request) {
         }
 
         // Rate limiting
-        const byIp = await incrAttempts(`login:ip:${ip}`, 20, 3600);
+        const byIp = await incrAttempts(`login:ip:${ip}`, 1000, 3600);
         if (byIp.blocked) {
             return NextResponse.json({ message: "Too many login attempts from this IP" }, { status: 429 });
         }
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
 
             await logSuspiciousActivity({
                 type: "failed_login_attempt",
-                id_number: sanitizedId.substring(0, 3) + "***",
+                id_number,
                 ip,
                 attempt: attempts,
                 timestamp: new Date(),
