@@ -58,7 +58,7 @@ export default function Sidebar({ user, logout }: SidebarProps) {
         };
         
         const sorted = [...user.roles].sort((a, b) => hierarchy[b] - hierarchy[a]);
-        return sorted[0] || "user";
+        return sorted[0] || "";
     };
 
     // Role badge color
@@ -68,7 +68,7 @@ export default function Sidebar({ user, logout }: SidebarProps) {
             admin: "bg-red-100 text-red-700",
             publisher: "bg-orange-100 text-orange-700",
             editor: "bg-purple-100 text-purple-700",
-            user: "bg-slate-100 text-slate-700",
+            user: "invisible",
         };
         return colors[primaryRole];
     };
@@ -76,7 +76,7 @@ export default function Sidebar({ user, logout }: SidebarProps) {
     const navItems: NavItem[] = [
         // Base items (all users)
         { href: "/dashboard", label: "Dashboard", icon: Home },
-        { href: "/contribute", label: "Contribute", icon: PenTool },
+        { href: "/contribute", label: "New Submission", icon: PenTool },
         { href: "/dashboard/submission", label: "My Submissions", icon: FileText },
         
         // Editor items
@@ -90,9 +90,14 @@ export default function Sidebar({ user, logout }: SidebarProps) {
         // Publisher items
         { 
             href: "/dashboard/editor/finalize", 
-            label: "Publish Magazine", 
+            label: "Upload Magazine", 
             icon: Upload,
-            requiredRoles: ["publisher"]
+            requiredRoles: ["editor","publisher"]
+        },{
+            href: "/dashboard/admin/magazine",
+            label:"Publish Magazine",
+            icon: Upload,
+            requiredRoles: ["admin", "publisher"]
         },
         
         // Admin items
@@ -118,34 +123,12 @@ export default function Sidebar({ user, logout }: SidebarProps) {
     ];
 
     return (
-        <aside className="w-64 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0">
-            {/* Logo/Brand */}
-            <div className="p-6 border-b border-slate-200">
-                <Link href="/" className="flex items-center gap-3">
-                    <div className="p-2 bg-slate-900 rounded-lg">
-                        <BookOpen className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                        <h1 className="font-bold text-slate-900">Apodartho</h1>
-                        <p className="text-xs text-slate-500">Wall Magazine</p>
-                    </div>
-                </Link>
-            </div>
-
+        <aside className="w-64 bg-white border-r border-slate-200 flex-col h-screen sticky top-0">
+            
             {/* User Info */}
             <div className="p-4 border-b border-slate-200">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
-                        {user.profile_picture_url ? (
-                            <img src={user.profile_picture_url} alt={user.name} className="w-full h-full object-cover" />
-                        ) : (
-                            <span className="text-slate-600 font-semibold">
-                                {user.name.charAt(0).toUpperCase()}
-                            </span>
-                        )}
-                    </div>
                     <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-slate-900 truncate">{user.name}</p>
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${getRoleBadgeColor()}`}>
                             {getPrimaryRole() === "admin" && <Crown className="w-3 h-3" />}
                             {getPrimaryRole() === "publisher" && <Briefcase className="w-3 h-3" />}
@@ -182,7 +165,7 @@ export default function Sidebar({ user, logout }: SidebarProps) {
             </nav>
 
             {/* Bottom Navigation */}
-            <div className="p-4 border-t border-slate-200 space-y-1">
+            <div className="p-4 border-t border-slate-100 space-y-1">
                 {bottomItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname === item.href;

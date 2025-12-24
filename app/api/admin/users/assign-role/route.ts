@@ -180,11 +180,16 @@ export async function GET(req: Request) {
             userId: user._id.toString(),
             name: user.name,
             email: user.email,
-            roles: user.roles,
+            roles: Array.isArray(user.roles)
+                ? user.roles
+                : user.roles
+                ? [user.roles]
+                : ["user"], // fallback safe value
             profile_picture_url: user.profile_picture_url || user.google_picture || null,
             last_login: user.last_login || null,
             created_at: user.createdAt,
         }));
+
 
         return NextResponse.json(
             {

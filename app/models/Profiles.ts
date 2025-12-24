@@ -11,13 +11,11 @@ export type Role = "user" | "editor" | "publisher" | "admin";
 
 export interface IProfiles {
     google_id: string; // Sparse unique index required if optional
-    google_email: string;
+    email: string;
     google_picture?: string;
 
     name: string;
-    id_number?: string;
-    password?: string;
-    email: string;
+    
     bio?: string;
     profile_picture_url?: string;
 
@@ -73,23 +71,9 @@ const ProfilesSchema = new Schema<ProfileDocument, ProfilesModel>(
             sparse: true,
             trim: true,
         },
-        google_email: {
-            type: String,
-            required: true,
-            lowercase: true,
-            trim: true,
-        },
         google_picture: {
             type: String,
             trim: true,
-        },
-        id_number:{
-            type: String,
-            required: false,
-        },
-        password:{
-            type: String,
-            required:false
         },
 
         // Basic Info

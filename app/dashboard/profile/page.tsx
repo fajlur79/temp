@@ -1,23 +1,33 @@
 "use client";
 
-import { Camera, Facebook, Instagram, Linkedin, Loader2, Twitter } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import {
+    Loader2,
+    Camera,
+    Facebook,
+    Instagram,
+    Twitter,
+    Linkedin,
+    Pencil,
+    Check,
+    X,
+} from "lucide-react";
+
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
-// Match the Interface to your DB Schema
 interface UserProfile {
     name: string;
-    role: string;
     email: string;
-    avatar: string;
-    bio: string;
-    social_links: {
+    bio?: string;
+    profile_picture_url?: string;
+    google_picture?: string;
+    social_links?: {
         facebook?: string;
         instagram?: string;
         twitter?: string;
@@ -26,217 +36,249 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
-    const { user: authUser, checkAuth } = useAuth();
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    
-    // Local state for the form
-    const [formData, setFormData] = useState<UserProfile>({
-        name: "",
-        role: "",
-        email: "",
-        avatar: "",
-        bio: "",
-        social_links: {
-            facebook: "",
-            instagram: "",
-            twitter: "",
-            linkedin: "",
-        },
+    const { checkAuth } = useAuth();
+
+    const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [initialProfile, setInitialProfile] = useState<UserProfile | null>(null);
+    const [social, setSocial] = useState({
+        facebook: "",
+        instagram: "",
+        twitter: "",
+        linkedin: "",
     });
 
-    // 1. Fetch Data on Mount
+    const [loading, setLoading] = useState(true);
+    const [editing, setEditing] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    // Load profile on mount
     useEffect(() => {
-        const fetchProfile = async () => {
+        const load = async () => {
             try {
-                const res = await fetch("/api/user/profile");
-                if (!res.ok) throw new Error("Failed to fetch profile");
-                
+                const res = await fetch("/api/user/profile", { credentials: "include" });
                 const data = await res.json();
                 const u = data.user;
 
-                setFormData({
-                    name: u.name || "",
-                    role: u.role || "",
-                    email: u.email || "",
-                    avatar: u.profile_picture_url || "",
+                const processed: UserProfile = {
+                    name: u.name,
+                    email: u.email,
                     bio: u.bio || "",
-                    social_links: {
-                        facebook: u.social_links?.facebook || "",
-                        instagram: u.social_links?.instagram || "",
-                        twitter: u.social_links?.twitter || "",
-                        linkedin: u.social_links?.linkedin || "",
-                    },
+                    profile_picture_url: u.profile_picture_url,
+                    google_picture: u.google_picture,
+                    social_links: u.social_links || {},
+                };
+
+                setProfile(processed);
+                setInitialProfile(JSON.parse(JSON.stringify(processed)));
+
+                setSocial({
+                    facebook: u.social_links?.facebook || "",
+                    instagram: u.social_links?.instagram || "",
+                    twitter: u.social_links?.twitter || "",
+                    linkedin: u.social_links?.linkedin || "",
                 });
-            } catch (error) {
-                toast.error("Could not load profile data");
+            } catch {
+                toast.error("Failed to load profile.");
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchProfile();
+        load();
     }, []);
 
-    // 2. Handle Save (PATCH request)
+    const avatar =
+        profile?.profile_picture_url ||
+        profile?.google_picture ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || "U")}`;
+
     const handleSave = async () => {
+        if (!profile) return;
+
         setSaving(true);
         try {
             const res = await fetch("/api/user/profile", {
                 method: "PATCH",
+                credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    name: formData.name,
-                    bio: formData.bio,
-                    social_links: formData.social_links,
+                    name: profile.name,
+                    bio: profile.bio,
+                    social_links: social,
                 }),
             });
 
-            if (!res.ok) throw new Error("Failed to update profile");
+            if (!res.ok) throw new Error();
+            toast.success("Profile updated.");
 
-            toast.success("Profile updated successfully");
-            await checkAuth(); // Refresh global auth context
-        } catch (error) {
-            toast.error("Failed to save changes");
+            setInitialProfile(JSON.parse(JSON.stringify(profile)));
+            setEditing(false);
+            await checkAuth();
+        } catch {
+            toast.error("Failed to save changes.");
         } finally {
             setSaving(false);
         }
     };
 
-    if (loading) {
+    const handleCancel = () => {
+        if (!initialProfile) return;
+        setProfile(JSON.parse(JSON.stringify(initialProfile)));
+        
+        setEditing(false);
+    };
+
+    if (loading || !profile) {
         return (
-            <div className="p-8 flex justify-center">
+            <div className="flex justify-center p-10">
                 <Loader2 className="animate-spin text-primary" />
             </div>
         );
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in">
+
+            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Profile</h2>
-                    <p className="text-muted-foreground mt-1">Manage your public persona and info.</p>
+                    <h1 className="text-3xl font-semibold">My Profile</h1>
+                    <p className="text-muted-foreground mt-1">
+                        View and update your personal details.
+                    </p>
                 </div>
-                <Button onClick={handleSave} disabled={saving}>
-                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Changes
-                </Button>
+
+                {!editing ? (
+                    <Button variant="outline" onClick={() => setEditing(true)}>
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Edit Profile
+                    </Button>
+                ) : (
+                    <div className="flex gap-2">
+                        <Button onClick={handleSave} disabled={saving}>
+                            {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                            <Check className="w-4 h-4 mr-1" /> Save
+                        </Button>
+                        <Button variant="outline" onClick={handleCancel}>
+                            <X className="w-4 h-4 mr-1" /> Cancel
+                        </Button>
+                    </div>
+                )}
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
-                {/* Main Info Card */}
-                <Card className="md:col-span-2">
+            {/* Layout: Avatar Card + Edit Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+                {/* LEFT: Avatar & Email */}
+                <Card className="h-fit sticky top-24">
                     <CardHeader>
-                        <CardTitle>Personal Information</CardTitle>
-                        <CardDescription>This information will be displayed on your published articles.</CardDescription>
+                        <CardTitle>Profile Summary</CardTitle>
+                        <CardDescription>Basic account information</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        {/* Avatar Section */}
-                        <div className="flex items-center gap-6">
+
+                        <div className="flex flex-col items-center gap-4">
+
                             <div className="relative group">
                                 <img
-                                    src={formData.avatar || `https://ui-avatars.com/api/?name=${formData.name}`}
-                                    alt="Profile"
-                                    className="w-24 h-24 rounded-full object-cover border-4 border-muted shadow-sm"
+                                    src={avatar}
+                                    className="w-28 h-28 rounded-full object-cover border shadow-sm"
                                 />
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                                    <Camera className="text-white w-6 h-6" />
-                                </div>
+                                {editing && (
+                                    <button
+                                        className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                                        onClick={() => toast.info("Avatar upload coming soon")}
+                                    >
+                                        <Camera className="w-6 h-6 text-white" />
+                                    </button>
+                                )}
                             </div>
-                            <div className="space-y-1">
-                                <h3 className="font-medium">Profile Picture</h3>
-                                <p className="text-xs text-muted-foreground">Click the image to upload a new one.</p>
-                                <p className="text-xs text-muted-foreground">Max 2MB. JPG, PNG.</p>
-                            </div>
-                        </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Full Name</Label>
-                                <Input 
-                                    value={formData.name} 
-                                    onChange={e => setFormData({ ...formData, name: e.target.value })} 
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Email</Label>
-                                <Input value={formData.email} disabled className="bg-muted text-muted-foreground" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Role</Label>
-                                <Input value={formData.role} disabled className="bg-muted text-muted-foreground capitalize" />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Bio</Label>
-                            <Textarea 
-                                value={formData.bio} 
-                                onChange={e => setFormData({ ...formData, bio: e.target.value })} 
-                                className="min-h-[100px]"
-                                placeholder="Tell us about yourself..."
-                            />
                             <p className="text-xs text-muted-foreground">
-                                Brief description for your profile. Will be displayed on your published articles.
+                                Recommended 400×400 JPG or PNG
                             </p>
                         </div>
+
+                        <div className="space-y-2">
+                            <Label>Email</Label>
+                            <Input disabled value={profile.email} className="bg-muted text-muted-foreground" />
+                        </div>
+
                     </CardContent>
                 </Card>
 
-                {/* Social Links Card */}
-                <Card className="md:col-span-2">
-                    <CardHeader>
-                        <CardTitle>Social Profiles</CardTitle>
-                        <CardDescription>Connect your social media accounts.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                            <Label className="flex items-center gap-2"><Facebook size={14} /> Facebook</Label>
-                            <Input 
-                                placeholder="https://facebook.com/username"
-                                value={formData.social_links.facebook}
-                                onChange={e => setFormData({
-                                    ...formData, 
-                                    social_links: { ...formData.social_links, facebook: e.target.value }
-                                })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="flex items-center gap-2"><Instagram size={14} /> Instagram</Label>
-                            <Input 
-                                placeholder="https://instagram.com/username"
-                                value={formData.social_links.instagram}
-                                onChange={e => setFormData({
-                                    ...formData, 
-                                    social_links: { ...formData.social_links, instagram: e.target.value }
-                                })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="flex items-center gap-2"><Twitter size={14} /> Twitter / X</Label>
-                            <Input 
-                                placeholder="https://twitter.com/username"
-                                value={formData.social_links.twitter}
-                                onChange={e => setFormData({
-                                    ...formData, 
-                                    social_links: { ...formData.social_links, twitter: e.target.value }
-                                })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="flex items-center gap-2"><Linkedin size={14} /> LinkedIn</Label>
-                            <Input 
-                                placeholder="https://linkedin.com/in/username"
-                                value={formData.social_links.linkedin}
-                                onChange={e => setFormData({
-                                    ...formData, 
-                                    social_links: { ...formData.social_links, linkedin: e.target.value }
-                                })}
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
+                {/* RIGHT: Editable Fields */}
+                <div className="md:col-span-2 space-y-8">
+
+                    {/* Personal Info */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Personal Information</CardTitle>
+                            <CardDescription>
+                                This is displayed to your readers.
+                            </CardDescription>
+                        </CardHeader>
+
+                        <CardContent className="space-y-6">
+                            <div className="space-y-2">
+                                <Label>Full Name</Label>
+                                <Input
+                                    disabled={!editing}
+                                    value={profile.name}
+                                    onChange={(e) =>
+                                        setProfile((prev) => prev && { ...prev, name: e.target.value })
+                                    }
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Bio</Label>
+                                <Textarea
+                                    disabled={!editing}
+                                    value={profile.bio}
+                                    onChange={(e) =>
+                                        setProfile((prev) => prev && { ...prev, bio: e.target.value })
+                                    }
+                                    className="min-h-[120px]"
+                                    placeholder="Tell readers about yourself..."
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Social Links */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Social Connections</CardTitle>
+                            <CardDescription>
+                                Optional links to your public profiles
+                            </CardDescription>
+                        </CardHeader>
+
+                        <CardContent className="grid md:grid-cols-2 gap-4">
+                            {[
+                                { key: "facebook", label: "Facebook", icon: Facebook },
+                                { key: "instagram", label: "Instagram", icon: Instagram },
+                                { key: "twitter", label: "Twitter / X", icon: Twitter },
+                                { key: "linkedin", label: "LinkedIn", icon: Linkedin },
+                            ].map(({ key, label, icon: Icon }) => (
+                                <div className="space-y-2" key={key}>
+                                    <Label className="flex items-center gap-2">
+                                        <Icon size={14} /> {label}
+                                    </Label>
+                                    <Input
+                                        disabled={!editing}
+                                        value={(social as any)[key]}
+                                        onChange={(e) =>
+                                            setSocial((prev) => ({ ...prev, [key]: e.target.value }))
+                                        }
+                                        placeholder={`https://${key}.com/username`}
+                                    />
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );

@@ -109,7 +109,8 @@ function StaffListTab() {
     const { data, isLoading } = useSWR("/api/admin/users/assign-role", fetcher);
 
     const groupedByRole = (data?.users || []).reduce((acc: any, user: any) => {
-        user.roles.forEach((role: Role) => {
+        const roles = Array.isArray(user.roles)?user.roles : [];
+        roles.forEach((role: Role) => {
             if (!acc[role]) acc[role] = [];
             if (!acc[role].find((u: any) => u.userId === user.userId)) {
                 acc[role].push(user);

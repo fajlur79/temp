@@ -14,10 +14,10 @@ export async function GET(req: Request) {
         await dbConnect();
 
         // TODO: Add admin role check
-        const dbUser = await RegisteredUsers.findOne({ id_number: user.id_number });
-        if (!dbUser.is_admin) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
-        }
+        // const dbUser = await RegisteredUsers.findOne({ id_number:  });
+        // if (!dbUser.is_admin) {
+        //     return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
+        // }
 
         const { searchParams } = new URL(req.url);
         const hours = parseInt(searchParams.get("hours") || "24");
