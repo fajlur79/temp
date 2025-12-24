@@ -1,14 +1,13 @@
 "use client";
 
 import type React from "react";
-
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Menu, Search } from "lucide-react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { Menu, Search, Sparkles, X } from "lucide-react";
 import { ProfileDropdown } from "./profiledropdown";
 
 const nav = [
@@ -24,7 +23,17 @@ export function SiteHeader() {
     const pathname = usePathname();
     const router = useRouter();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+
+    // Handle scroll effect for glass navbar
+    useEffect(() => {
+        const handleScroll = () => {
+            setScrolled(window.scrollY > 20);
+        };
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -36,18 +45,30 @@ export function SiteHeader() {
     };
 
     return (
-        <header className="border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
+        <header
+            className={cn(
+                "sticky top-0 z-50 w-full transition-all duration-300 border-b border-transparent",
+                scrolled || mobileMenuOpen ? "glass border-border/40 shadow-sm" : "bg-transparent"
+            )}
+        >
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                {/* Logo - Left */}
-                <Link href="/" className="flex items-center gap-3" aria-label="Apodartho Home">
-                    <div className="size-9 rounded-md bg-primary text-primary-foreground grid place-items-center font-bold">
-                        AP
+                {/* Logo */}
+                <Link 
+                    href="/" 
+                    className="flex items-center gap-2.5 group" 
+                    aria-label="Apodartho Home"
+                    onClick={() => setMobileMenuOpen(false)}
+                >
+                    <div className="relative flex items-center justify-center size-8 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+                        <Sparkles className="w-4 h-4" />
                     </div>
-                    <span className="font-semibold text-lg tracking-tight">Apodartho</span>
+                    <span className="font-bold text-lg tracking-tight text-foreground/90 group-hover:text-foreground transition-colors">
+                        Apodartho
+                    </span>
                 </Link>
 
-                {/* Desktop Navigation - Center */}
-                <nav aria-label="Primary" className="hidden md:flex items-center gap-1">
+                {/* Desktop Navigation - Centered Pill Style */}
+                <nav aria-label="Primary" className="hidden md:flex items-center gap-1 bg-background/50 p-1 rounded-full border border-border/50 shadow-sm backdrop-blur-md">
                     {nav.map(item => {
                         const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
                         return (
@@ -55,10 +76,10 @@ export function SiteHeader() {
                                 key={item.href}
                                 href={item.href}
                                 className={cn(
-                                    "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                                    "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200",
                                     active
-                                        ? "bg-secondary text-secondary-foreground"
-                                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                                        ? "bg-primary text-primary-foreground shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                                 )}
                             >
                                 {item.label}
@@ -67,46 +88,49 @@ export function SiteHeader() {
                     })}
                 </nav>
 
-                {/* Right Side - Contribute + Profile */}
-                <div className="flex items-center gap-3">
-                    <Button asChild className="hidden sm:inline-flex" size="sm">
+                {/* Right Side Actions */}
+                <div className="flex items-center gap-2 sm:gap-3">
+                    {/* Desktop Search Trigger (Optional visual) */}
+                    <Button variant="ghost" size="icon" className="hidden lg:flex text-muted-foreground hover:text-primary" aria-label="Search">
+                        <Search className="w-4 h-4" />
+                    </Button>
+
+                    <Button asChild className="hidden sm:inline-flex rounded-full px-5" size="sm">
                         <Link href="/contribute">Contribute</Link>
                     </Button>
 
-                    {/* Profile Dropdown */}
                     <ProfileDropdown />
 
                     {/* Mobile Menu Toggle */}
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="md:hidden"
+                        className="md:hidden text-muted-foreground"
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         aria-label="Toggle menu"
                     >
-                        <Menu className="h-5 w-5" />
+                        {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                     </Button>
                 </div>
             </div>
 
-            {/* Mobile Navigation */}
+            {/* Mobile Navigation Dropdown */}
             {mobileMenuOpen && (
-                <div className="md:hidden border-t">
-                    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col gap-4">
-                        <form onSubmit={handleSearch} className="flex gap-2">
+                <div className="md:hidden absolute top-16 left-0 right-0 glass border-b border-border/40 animate-slide-up h-[calc(100vh-4rem)]">
+                    <div className="container mx-auto px-4 py-6 flex flex-col gap-6">
+                        {/* Mobile Search */}
+                        <form onSubmit={handleSearch} className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search..."
+                                placeholder="Search articles..."
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
-                                className="flex-1"
+                                className="pl-9 bg-muted/50 border-transparent focus:bg-background transition-all"
                             />
-                            <Button type="submit" size="icon">
-                                <Search className="h-4 w-4" />
-                            </Button>
                         </form>
 
-                        {/* Navigation Links */}
-                        <div className="flex flex-col gap-2">
+                        {/* Links */}
+                        <div className="grid gap-2">
                             {nav.map(item => {
                                 const active =
                                     pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
@@ -116,20 +140,23 @@ export function SiteHeader() {
                                         href={item.href}
                                         onClick={() => setMobileMenuOpen(false)}
                                         className={cn(
-                                            "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                                            "flex items-center justify-between p-3 rounded-xl text-sm font-medium transition-all",
                                             active
-                                                ? "bg-secondary text-secondary-foreground"
-                                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                                                ? "bg-primary/10 text-primary"
+                                                : "hover:bg-muted text-muted-foreground hover:text-foreground"
                                         )}
                                     >
                                         {item.label}
+                                        {active && <Sparkles className="w-3 h-3 text-primary" />}
                                     </Link>
                                 );
                             })}
                         </div>
 
-                        <Button asChild size="sm" className="sm:hidden w-full">
-                            <Link href="/contribute">Contribute</Link>
+                        <Button asChild className="w-full rounded-xl py-6 text-base mt-auto mb-10" size="lg">
+                            <Link href="/contribute" onClick={() => setMobileMenuOpen(false)}>
+                                Submit an Article
+                            </Link>
                         </Button>
                     </div>
                 </div>
